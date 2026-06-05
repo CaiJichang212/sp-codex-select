@@ -1,0 +1,52 @@
+{
+  "task_id": "task-908ae3f51ae1",
+  "role": "implementer",
+  "score": 1,
+  "tier": "T1",
+  "category": "quick",
+  "agent_type": "spc_quick",
+  "model": "gpt-5.4-mini",
+  "reasoning_effort": "low",
+  "fallback_agent_type": "spc_spark",
+  "sandbox_mode": "workspace-write",
+  "confidence": "medium",
+  "hard_flags": [],
+  "signals": {
+    "file_count": null,
+    "file_unknown": true,
+    "paths_detected": [],
+    "loc_hint": 1,
+    "keyword_hits": {
+      "trivial": [
+        "typo",
+        "readme",
+        "changelog"
+      ]
+    },
+    "dimensions": {
+      "file_scope": 1,
+      "diff_size": 0,
+      "ambiguity": 0,
+      "integration": 0,
+      "risk": 0,
+      "verification": 0,
+      "role_adjust": 0
+    }
+  },
+  "rationale": [
+    "file_scope=1",
+    "diff_size=0",
+    "ambiguity=0",
+    "integration=0",
+    "risk=0",
+    "verification=0",
+    "role_adjust=0"
+  ],
+  "escalation": [
+    "Escalate on BLOCKED caused by reasoning/design/debugging uncertainty.",
+    "Escalate on correctness-related DONE_WITH_CONCERNS or failed review.",
+    "Retry the same tier only once for missing context; never repeat the same prompt after material failure."
+  ],
+  "codex_spawn_hint": "spawn_agent(agent_type=\"spc_quick\", task_name=\"task-908ae3f51ae1\", message=<task prompt with sp-codex-select header>)",
+  "superpowers_dispatch_header": "[sp-codex-select]\ntier: T1\ncategory: quick\nagent_type: spc_quick\nmodel: gpt-5.4-mini\nmodel_reasoning_effort: low\nsandbox_mode: workspace-write\nfallback_agent_type: spc_spark\ncomplexity_score: 1\nconfidence: medium\nhard_flags: none\nrationale: file_scope=1; diff_size=0; ambiguity=0; integration=0; risk=0; verification=0; role_adjust=0\nrule: use the selected cheapest-capable tier; escalate rather than guessing.\n[/sp-codex-select]"
+}
