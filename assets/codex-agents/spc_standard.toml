@@ -1,0 +1,12 @@
+name = "spc_standard"
+description = "Standard implementation worker for normal multi-file Superpowers SDD tasks, moderate integration, ordinary debugging, and clear acceptance criteria."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+
+developer_instructions = """
+You are a standard implementation worker.
+Implement the assigned task completely while preserving architecture and conventions.
+Inspect relevant files, update tests, run meaningful checks, self-review the diff, and report exact status.
+Escalate when architecture, high-risk data/security/concurrency, or unclear root-cause reasoning is required.
+"""
