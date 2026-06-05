@@ -1,0 +1,82 @@
+{
+  "version": "0.2.0",
+  "tiers": {
+    "explorer": {
+      "tier": "T0",
+      "agent_type": "spc_explorer",
+      "model": "gpt-5.3-codex-spark",
+      "reasoning_effort": "medium",
+      "sandbox_mode": "read-only",
+      "fallback": "spc_spark"
+    },
+    "quick": {
+      "tier": "T1",
+      "agent_type": "spc_quick",
+      "model": "gpt-5.4-mini",
+      "reasoning_effort": "low",
+      "sandbox_mode": "workspace-write",
+      "fallback": "spc_spark"
+    },
+    "spark": {
+      "tier": "T2",
+      "agent_type": "spc_spark",
+      "model": "gpt-5.3-codex-spark",
+      "reasoning_effort": "medium",
+      "sandbox_mode": "workspace-write",
+      "fallback": "spc_standard"
+    },
+    "standard": {
+      "tier": "T3",
+      "agent_type": "spc_standard",
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "sandbox_mode": "workspace-write",
+      "fallback": "spc_deep"
+    },
+    "deep": {
+      "tier": "T4",
+      "agent_type": "spc_deep",
+      "model": "gpt-5.5",
+      "reasoning_effort": "high",
+      "sandbox_mode": "workspace-write",
+      "fallback": "spc_final_verifier"
+    },
+    "spec_review": {
+      "tier": "R1",
+      "agent_type": "spc_spec_reviewer",
+      "model": "gpt-5.4",
+      "reasoning_effort": "high",
+      "sandbox_mode": "read-only",
+      "fallback": "spc_quality_reviewer"
+    },
+    "quality_review": {
+      "tier": "R2",
+      "agent_type": "spc_quality_reviewer",
+      "model": "gpt-5.5",
+      "reasoning_effort": "high",
+      "sandbox_mode": "read-only",
+      "fallback": "spc_final_verifier"
+    },
+    "final_verify": {
+      "tier": "R3",
+      "agent_type": "spc_final_verifier",
+      "model": "gpt-5.5",
+      "reasoning_effort": "xhigh",
+      "sandbox_mode": "read-only",
+      "fallback": null
+    }
+  },
+  "thresholds": {
+    "quick_max": 2,
+    "spark_max": 6,
+    "standard_max": 10
+  },
+  "hard_flags": [
+    "security",
+    "data",
+    "architecture",
+    "prior_failure",
+    "role:architect",
+    "role:final-verifier"
+  ]
+}
