@@ -1,0 +1,3 @@
+# Optional Codex skill metadata for UIs that read agents/openai.yaml
+name: sp-codex-select
+display_name: sp-codex-select
