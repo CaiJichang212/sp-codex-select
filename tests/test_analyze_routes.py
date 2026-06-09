@@ -21,7 +21,7 @@ class AnalyzeRoutesTest(unittest.TestCase):
             ]
             log.write_text("\n".join(json.dumps(record) for record in records) + "\n", encoding="utf-8")
             result = subprocess.run(
-                ["python3", str(ANALYZER), str(log)],
+                ["python3", "-B", str(ANALYZER), str(log)],
                 cwd=ROOT,
                 text=True,
                 capture_output=True,
@@ -37,7 +37,7 @@ class AnalyzeRoutesTest(unittest.TestCase):
             log = Path(temp) / "routes.jsonl"
             log.write_text(json.dumps({"task_id": "T1"}) + "\n", encoding="utf-8")
             result = subprocess.run(
-                ["python3", str(ANALYZER), str(log)],
+                ["python3", "-B", str(ANALYZER), str(log)],
                 cwd=ROOT,
                 text=True,
                 capture_output=True,
@@ -45,6 +45,21 @@ class AnalyzeRoutesTest(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("missing required field", result.stderr)
+
+    def test_empty_jsonl_reports_clean_error_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            log = Path(temp) / "routes.jsonl"
+            log.write_text("", encoding="utf-8")
+            result = subprocess.run(
+                ["python3", "-B", str(ANALYZER), str(log)],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no route records found", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
 
 
 if __name__ == "__main__":

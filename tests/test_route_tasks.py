@@ -54,6 +54,17 @@ class RouteTasksTest(unittest.TestCase):
         self.assertEqual(route.tier, "T3")
         self.assertEqual(route.agent_type, "spc_standard")
 
+    def test_public_api_change_forces_deep(self) -> None:
+        route = route_task(
+            "Change public API endpoint return shape in src/api/user.ts with exact unit test",
+            "implementer",
+            None,
+            config_copy(),
+        )
+        self.assertEqual(route.tier, "T4")
+        self.assertEqual(route.agent_type, "spc_deep")
+        self.assertIn("api", route.hard_flags)
+
     def test_queue_idempotency_is_treated_as_data_risk(self) -> None:
         route = route_task(
             "Previously failed tests after weaker model changed queue idempotency",
@@ -81,6 +92,36 @@ class RouteTasksTest(unittest.TestCase):
         self.assertIsNone(final.implementation_fallback_agent_type)
         self.assertIsNone(final.review_fallback_agent_type)
         self.assertEqual(final.final_verification_policy, "required-final-gate")
+
+    def test_json_schema_validation_does_not_force_data_risk(self) -> None:
+        route = route_task(
+            "Add validation around --config JSON schema and error handling in scripts/route_tasks.py",
+            "implementer",
+            None,
+            config_copy(),
+        )
+        self.assertNotIn("data", route.hard_flags)
+        self.assertNotEqual(route.tier, "T4")
+
+    def test_plan_filename_typo_does_not_force_planner_role(self) -> None:
+        route = route_task(
+            "Update docs/implementation-plan.md typo",
+            "auto",
+            None,
+            config_copy(),
+        )
+        self.assertEqual(route.role, "doc-writer")
+        self.assertEqual(route.tier, "T1")
+
+    def test_chinese_table_schema_routes_as_data_risk(self) -> None:
+        route = route_task(
+            "修改用户表结构",
+            "implementer",
+            None,
+            config_copy(),
+        )
+        self.assertEqual(route.tier, "T4")
+        self.assertIn("data", route.hard_flags)
 
 
 if __name__ == "__main__":

@@ -60,6 +60,22 @@ class InstallCodexAssetsTest(unittest.TestCase):
             self.assertTrue((target / ".agents" / "skills" / "sp-codex-select" / "SKILL.md").exists())
             self.assertTrue(any((target / ".codex" / "agents").glob("spc_*.toml")))
 
+    def test_install_copies_runtime_skill_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            target = Path(temp) / "repo"
+            result = self.run_installer(str(target))
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            installed = target / ".agents" / "skills" / "sp-codex-select"
+            self.assertTrue((installed / "SKILL.md").exists())
+            self.assertTrue((installed / "scripts" / "route_tasks.py").exists())
+            self.assertTrue((installed / "assets" / "codex-agents").is_dir())
+            self.assertTrue((installed / "references" / "routing-rubric.md").exists())
+            self.assertTrue((installed / "agents" / "openai.yaml").exists())
+
+            for excluded in [".git", "third_party", "docs", "tests", "evals", "governance", "examples"]:
+                self.assertFalse((installed / excluded).exists(), excluded)
+
     def test_rejects_root_target(self) -> None:
         result = self.run_installer("--dry-run", "/")
         self.assertNotEqual(result.returncode, 0)

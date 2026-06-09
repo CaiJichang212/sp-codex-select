@@ -14,7 +14,7 @@ RUN_EVALS = ROOT / "scripts" / "run_evals.py"
 class RunEvalsTest(unittest.TestCase):
     def run_eval(self, suite: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["python3", str(RUN_EVALS), "--suite", str(suite)],
+            ["python3", "-B", str(RUN_EVALS), "--suite", str(suite)],
             cwd=ROOT,
             text=True,
             capture_output=True,
@@ -98,6 +98,21 @@ class RunEvalsTest(unittest.TestCase):
                 "cases": [{
                     "id": "query-reviewer-roles",
                     "text": "Map reviewer roles to spec-review and quality-review agents.",
+                    "expected_use_skill": True
+                }]
+            }), encoding="utf-8")
+            result = self.run_eval(suite)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("passed=1 failed=0", result.stdout)
+
+    def test_query_suite_keeps_route_header_trigger_despite_no_dispatch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            suite = Path(temp) / "queries.json"
+            suite.write_text(json.dumps({
+                "suite": "queries",
+                "cases": [{
+                    "id": "query-route-header-no-dispatch",
+                    "text": "Route this Superpowers plan without dispatching subagents; only generate route headers.",
                     "expected_use_skill": True
                 }]
             }), encoding="utf-8")
