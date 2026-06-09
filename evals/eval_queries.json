@@ -30,6 +30,9 @@
     {"id": "Q-NEG-012", "text": "帮我写一段会议纪要。", "expected_use_skill": false},
     {"id": "Q-NEG-013", "text": "生成一份周报模板。", "expected_use_skill": false},
     {"id": "Q-NEG-014", "text": "解释什么是单元测试。", "expected_use_skill": false},
-    {"id": "Q-NEG-015", "text": "为个人博客起一个标题。", "expected_use_skill": false}
+    {"id": "Q-NEG-015", "text": "为个人博客起一个标题。", "expected_use_skill": false},
+    {"id": "Q-NEG-016", "text": "Codex 这个项目怎么运行？普通解释，不需要子代理派发。", "expected_use_skill": false},
+    {"id": "Q-NEG-017", "text": "Explain this project's routing README without dispatching subagents.", "expected_use_skill": false},
+    {"id": "Q-POS-016", "text": "Route this Superpowers plan without dispatching subagents; only generate route headers.", "expected_use_skill": true}
   ]
 }
