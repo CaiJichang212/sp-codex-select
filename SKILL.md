@@ -1,6 +1,13 @@
 ---
 name: sp-codex-select
-description: Cost-aware Superpowers + Codex subagent router for task complexity scoring, custom-agent selection, reasoning effort, sandbox, fallback, review policy, and escalation decisions.
+description: Cost-aware Superpowers + Codex subagent router for task complexity scoring, custom-agent selection, API compatibility risk, reasoning effort, sandbox, fallback, review policy, and escalation decisions.
+compatibility: Superpowers + Codex custom-agent workflows; dependency-free Python 3 router
+metadata:
+  org.owner: "sp-codex-select maintainers"
+  org.version: "0.2.0"
+  org.status: "pilot"
+  org.risk_level: "R2"
+  org.last_reviewed: "2026-06-09"
 ---
 
 # sp-codex-select
@@ -44,7 +51,7 @@ Every dispatch decision must produce a route row or route header with task id, r
 
 ## Validation checklist
 
-- High-risk auth, security, data, migration, concurrency, rollback, compatibility, architecture, or prior-failure tasks route to `spc_deep`.
+- High-risk auth, security, data, migration, concurrency, rollback, public API, compatibility, architecture, or prior-failure tasks route to `spc_deep`.
 - Unknown affected files route to `spc_explorer` unless the task is clearly trivial and verifiable.
 - Review and final verification remain read-only.
 - Negative trigger examples do not use this skill.
@@ -235,3 +242,12 @@ After 50-200 real tasks, adjust thresholds by observed review failures, test fai
 - `references/routing-rubric.md`: detailed scoring rules.
 - `references/superpowers-integration.md`: integration notes.
 - `references/research-notes.md`: rationale and references.
+
+Runtime installs copy only `SKILL.md`, `README.md`, `scripts/`, `assets/`,
+`references/`, and `agents/`. Treat `docs/`, `tests/`, `evals/`,
+`governance/`, `.git`, and `third_party/` as source-repo development materials,
+not target-project runtime skill contents.
+
+Use `scripts/validate_skill.py --stage runtime` for installed runtime copies.
+Use `--stage pilot` only in the source repository where evals, governance, and
+tests are present.
