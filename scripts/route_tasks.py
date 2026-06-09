@@ -27,6 +27,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "medium",
             "sandbox_mode": "read-only",
             "fallback": "spc_spark",
+            "implementation_fallback": "spc_spark",
+            "review_fallback": None,
+            "final_verification_policy": "not-required",
         },
         "quick": {
             "tier": "T1",
@@ -35,6 +38,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "low",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_spark",
+            "implementation_fallback": "spc_spark",
+            "review_fallback": None,
+            "final_verification_policy": "not-required",
         },
         "spark": {
             "tier": "T2",
@@ -43,6 +49,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "medium",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_standard",
+            "implementation_fallback": "spc_standard",
+            "review_fallback": None,
+            "final_verification_policy": "recommended-for-behavior-change",
         },
         "standard": {
             "tier": "T3",
@@ -51,6 +60,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_deep",
+            "implementation_fallback": "spc_deep",
+            "review_fallback": None,
+            "final_verification_policy": "recommended-for-branch-gate",
         },
         "deep": {
             "tier": "T4",
@@ -59,6 +71,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_final_verifier",
+            "implementation_fallback": None,
+            "review_fallback": "spc_quality_reviewer",
+            "final_verification_policy": "recommended-for-hard-flags",
         },
         "spec_review": {
             "tier": "R1",
@@ -67,6 +82,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "read-only",
             "fallback": "spc_quality_reviewer",
+            "implementation_fallback": None,
+            "review_fallback": "spc_quality_reviewer",
+            "final_verification_policy": "not-required",
         },
         "quality_review": {
             "tier": "R2",
@@ -75,6 +93,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "read-only",
             "fallback": "spc_final_verifier",
+            "implementation_fallback": None,
+            "review_fallback": "spc_final_verifier",
+            "final_verification_policy": "recommended-for-hard-flags",
         },
         "final_verify": {
             "tier": "R3",
@@ -83,6 +104,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "xhigh",
             "sandbox_mode": "read-only",
             "fallback": None,
+            "implementation_fallback": None,
+            "review_fallback": None,
+            "final_verification_policy": "required-final-gate",
         },
     },
     "thresholds": {"quick_max": 2, "spark_max": 6, "standard_max": 10},
@@ -107,6 +131,7 @@ KEYWORDS: Dict[str, List[str]] = {
     ],
     "ambiguity": [
         "unclear", "ambiguous", "unknown", "figure out", "infer", "investigate",
+        "inferred",
         "explore", "discover", "root cause", "debug", "flaky", "intermittent",
         "cannot reproduce", "performance regression", "不明确", "未知", "推断", "调研",
         "探索", "定位", "根因", "为什么", "偶发", "难以复现", "性能回退",
@@ -127,7 +152,7 @@ KEYWORDS: Dict[str, List[str]] = {
     ],
     "data": [
         "migration", "schema", "destructive", "delete", "data loss", "rollback",
-        "transaction", "backfill", "consistency", "idempotent", "replication",
+        "transaction", "backfill", "consistency", "idempotent", "idempotency", "replication",
         "distributed", "race condition", "race", "deadlock", "concurrency", "并发",
         "迁移", "表结构", "删除", "数据丢失", "回滚", "事务", "回填", "一致性",
         "幂等", "复制", "分布式", "竞态", "死锁",
@@ -197,6 +222,9 @@ class Route:
     model: str
     reasoning_effort: str
     fallback_agent_type: Optional[str]
+    implementation_fallback_agent_type: Optional[str]
+    review_fallback_agent_type: Optional[str]
+    final_verification_policy: str
     sandbox_mode: str
     confidence: str
     hard_flags: List[str]
@@ -454,6 +482,9 @@ def build_header(tier: str, category: str, model_cfg: Dict[str, Any], score: int
         f"model_reasoning_effort: {model_cfg['reasoning_effort']}",
         f"sandbox_mode: {model_cfg.get('sandbox_mode', 'workspace-write')}",
         f"fallback_agent_type: {model_cfg.get('fallback') or 'none'}",
+        f"implementation_fallback_agent_type: {model_cfg.get('implementation_fallback') or 'none'}",
+        f"review_fallback_agent_type: {model_cfg.get('review_fallback') or 'none'}",
+        f"final_verification_policy: {model_cfg.get('final_verification_policy', 'not-required')}",
         f"complexity_score: {score}",
         f"confidence: {confidence}",
         f"hard_flags: {', '.join(hard_flags) if hard_flags else 'none'}",
@@ -472,6 +503,10 @@ def route_task(text: str, role_arg: str, explicit_files: Optional[int], cfg: Dic
     confidence = confidence_for(score, category, hard_flags, signals)
     tid = task_id or "task-" + hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]
     header = build_header(tier, category, model_cfg, score, hard_flags, confidence, rationale)
+    implementation_fallback = model_cfg.get("implementation_fallback")
+    review_fallback = model_cfg.get("review_fallback")
+    final_verification_policy = model_cfg.get("final_verification_policy", "not-required")
+    legacy_fallback = model_cfg.get("fallback")
     escalation = [
         "Escalate on BLOCKED caused by reasoning/design/debugging uncertainty.",
         "Escalate on correctness-related DONE_WITH_CONCERNS or failed review.",
@@ -486,7 +521,10 @@ def route_task(text: str, role_arg: str, explicit_files: Optional[int], cfg: Dic
         agent_type=model_cfg["agent_type"],
         model=model_cfg["model"],
         reasoning_effort=model_cfg["reasoning_effort"],
-        fallback_agent_type=model_cfg.get("fallback"),
+        fallback_agent_type=legacy_fallback,
+        implementation_fallback_agent_type=implementation_fallback,
+        review_fallback_agent_type=review_fallback,
+        final_verification_policy=final_verification_policy,
         sandbox_mode=model_cfg.get("sandbox_mode", "workspace-write"),
         confidence=confidence,
         hard_flags=hard_flags,
