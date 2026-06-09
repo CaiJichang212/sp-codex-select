@@ -4,6 +4,30 @@
 
 It turns a task or plan into a routing row: tier, Codex custom agent, model, reasoning effort, sandbox mode, fallback, and escalation triggers.
 
+## Development reference
+
+This repository tracks upstream Superpowers as a pinned git submodule at `third_party/superpowers/`.
+
+- Development-time reference: `third_party/superpowers/`
+- Upstream: `https://github.com/obra/superpowers.git`
+- Current pinned commit: `6fd4507659784c351abbd2bc264c7162cfd386dc`
+
+Initialize the checkout after cloning this repository:
+
+```bash
+git submodule update --init --recursive
+```
+
+Refresh the pinned reference intentionally, then commit the updated submodule pointer:
+
+```bash
+git submodule update --remote third_party/superpowers
+git add third_party/superpowers .gitmodules
+git commit -m "chore: bump superpowers submodule"
+```
+
+The submodule is for development-time source inspection, patch generation, and compatibility checks. Runtime integration remains no-fork: install this skill into the target Codex project and leave upstream Superpowers unchanged.
+
 ## Install into a Codex project
 
 ```bash
