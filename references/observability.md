@@ -1,14 +1,38 @@
 # Observability and evaluation
 
-Append one JSONL record per routed task:
+Record one JSONL object for every dispatched task after route selection and final outcome.
+
+## JSONL schema
+
+Required fields:
+
+- `task_id`: task or plan item id.
+- `role`: routed role.
+- `tier`: selected tier such as `T1`, `T4`, `R2`, or `R3`.
+- `agent`: selected Codex custom agent.
+- `model`: selected model id.
+- `score`: numeric complexity score.
+- `status`: final worker status such as `DONE`, `BLOCKED`, or `DONE_WITH_CONCERNS`.
+- `review_pass`: boolean review result.
+- `tests_pass`: boolean test result.
+- `escalated`: boolean indicating whether the task required a stronger tier.
+
+Example:
 
 ```json
-{"task_id":"T3","role":"implementer","tier":"T2","agent":"spc_spark","model":"gpt-5.3-codex-spark","score":5,"status":"DONE","review_pass":true,"tests_pass":true,"escalated":false,"elapsed_sec":93}
+{"task_id":"T3","role":"implementer","tier":"T2","agent":"spc_spark","model":"gpt-5.3-codex-spark","score":5,"status":"DONE","review_pass":true,"tests_pass":true,"escalated":false}
 ```
 
-Use 50-200 task outcomes to tune thresholds:
+## Local analysis
 
-- increase tier for task classes with repeated review/test failures;
-- decrease tier only when tests and review consistently pass without rework;
-- keep high-risk review on stronger models even if implementation succeeds cheaply;
-- track false-cheap cases separately: cheap first call but expensive total rework.
+Run:
+
+```bash
+python3 scripts/analyze_routes.py observability/routes.jsonl
+```
+
+The analyzer reports route count, tier counts, review failure rate, test failure rate, escalation rate, and false-cheap candidates.
+
+## Pilot calibration rule
+
+During Pilot, inspect route records before changing thresholds. Increase tier for task classes with repeated review failures, test failures, or escalations. Move a task class down only when tests and review consistently pass without rework.
