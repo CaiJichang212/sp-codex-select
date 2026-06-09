@@ -68,7 +68,7 @@ It then chooses the cheapest capable tier:
 
 Hard flags force stronger routing. These include auth, security, permissions,
 secrets, payment, privacy, migrations, destructive writes, data integrity,
-rollback complexity, concurrency, public API compatibility, broad refactors,
+rollback complexity, concurrency, public API or endpoint compatibility, broad refactors,
 plugin extension points, unclear root cause, and prior lower-tier failure.
 
 Unknown affected files usually route to `spc_explorer` first unless the task is
@@ -84,8 +84,13 @@ From the parent directory containing this repository:
 
 The installer copies:
 
-- this skill to `/path/to/repo/.agents/skills/sp-codex-select/`;
+- runtime skill files to `/path/to/repo/.agents/skills/sp-codex-select/`;
 - custom-agent TOMLs to `/path/to/repo/.codex/agents/`.
+
+Runtime skill files are limited to `SKILL.md`, `README.md`, `scripts/`,
+`assets/`, `references/`, and `agents/`. Development-only materials such as
+`docs/`, `tests/`, `evals/`, `governance/`, `.git`, and `third_party/` are not
+installed into target projects.
 
 Useful installer modes:
 
@@ -103,11 +108,12 @@ Optional project enforcement:
 cat sp-codex-select/assets/AGENTS.md-snippet.md >> /path/to/repo/AGENTS.md
 ```
 
-Manual install:
+Manual install should follow the same runtime allowlist:
 
 ```bash
-mkdir -p /path/to/repo/.agents/skills /path/to/repo/.codex/agents
-cp -R sp-codex-select /path/to/repo/.agents/skills/sp-codex-select
+mkdir -p /path/to/repo/.agents/skills/sp-codex-select /path/to/repo/.codex/agents
+cp sp-codex-select/SKILL.md sp-codex-select/README.md /path/to/repo/.agents/skills/sp-codex-select/
+cp -R sp-codex-select/scripts sp-codex-select/assets sp-codex-select/references sp-codex-select/agents /path/to/repo/.agents/skills/sp-codex-select/
 cp sp-codex-select/assets/codex-agents/*.toml /path/to/repo/.codex/agents/
 cat sp-codex-select/assets/AGENTS.md-snippet.md >> /path/to/repo/AGENTS.md
 ```
@@ -209,9 +215,15 @@ Validate package readiness:
 
 ```bash
 python3 scripts/validate_skill.py --stage smoke .
+python3 scripts/validate_skill.py --stage runtime .
 python3 scripts/validate_skill.py --stage draft .
 python3 scripts/validate_skill.py --stage pilot .
 ```
+
+Use `--stage runtime` for installed target-project skill copies. Runtime
+validation checks installed skill files and metadata, but does not require
+source-repo-only materials such as `evals/`, `governance/`, or `tests/`.
+Use `--stage pilot` only in the source repository.
 
 Run eval suites:
 
