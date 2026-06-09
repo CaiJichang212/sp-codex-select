@@ -7,7 +7,10 @@
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "medium",
       "sandbox_mode": "read-only",
-      "fallback": "spc_spark"
+      "fallback": "spc_spark",
+      "implementation_fallback": "spc_spark",
+      "review_fallback": null,
+      "final_verification_policy": "not-required"
     },
     "quick": {
       "tier": "T1",
@@ -15,7 +18,10 @@
       "model": "gpt-5.4-mini",
       "reasoning_effort": "low",
       "sandbox_mode": "workspace-write",
-      "fallback": "spc_spark"
+      "fallback": "spc_spark",
+      "implementation_fallback": "spc_spark",
+      "review_fallback": null,
+      "final_verification_policy": "not-required"
     },
     "spark": {
       "tier": "T2",
@@ -23,7 +29,10 @@
       "model": "gpt-5.3-codex-spark",
       "reasoning_effort": "medium",
       "sandbox_mode": "workspace-write",
-      "fallback": "spc_standard"
+      "fallback": "spc_standard",
+      "implementation_fallback": "spc_standard",
+      "review_fallback": null,
+      "final_verification_policy": "recommended-for-behavior-change"
     },
     "standard": {
       "tier": "T3",
@@ -31,7 +40,10 @@
       "model": "gpt-5.4",
       "reasoning_effort": "high",
       "sandbox_mode": "workspace-write",
-      "fallback": "spc_deep"
+      "fallback": "spc_deep",
+      "implementation_fallback": "spc_deep",
+      "review_fallback": null,
+      "final_verification_policy": "recommended-for-branch-gate"
     },
     "deep": {
       "tier": "T4",
@@ -39,7 +51,10 @@
       "model": "gpt-5.5",
       "reasoning_effort": "high",
       "sandbox_mode": "workspace-write",
-      "fallback": "spc_final_verifier"
+      "fallback": "spc_final_verifier",
+      "implementation_fallback": null,
+      "review_fallback": "spc_quality_reviewer",
+      "final_verification_policy": "recommended-for-hard-flags"
     },
     "spec_review": {
       "tier": "R1",
@@ -47,7 +62,10 @@
       "model": "gpt-5.4",
       "reasoning_effort": "high",
       "sandbox_mode": "read-only",
-      "fallback": "spc_quality_reviewer"
+      "fallback": "spc_quality_reviewer",
+      "implementation_fallback": null,
+      "review_fallback": "spc_quality_reviewer",
+      "final_verification_policy": "not-required"
     },
     "quality_review": {
       "tier": "R2",
@@ -55,7 +73,10 @@
       "model": "gpt-5.5",
       "reasoning_effort": "high",
       "sandbox_mode": "read-only",
-      "fallback": "spc_final_verifier"
+      "fallback": "spc_final_verifier",
+      "implementation_fallback": null,
+      "review_fallback": "spc_final_verifier",
+      "final_verification_policy": "recommended-for-hard-flags"
     },
     "final_verify": {
       "tier": "R3",
@@ -63,7 +84,10 @@
       "model": "gpt-5.5",
       "reasoning_effort": "xhigh",
       "sandbox_mode": "read-only",
-      "fallback": null
+      "fallback": null,
+      "implementation_fallback": null,
+      "review_fallback": null,
+      "final_verification_policy": "required-final-gate"
     }
   },
   "thresholds": {
@@ -72,6 +96,7 @@
     "standard_max": 10
   },
   "hard_flags": [
+    "api",
     "security",
     "data",
     "architecture",
