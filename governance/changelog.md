@@ -1,5 +1,21 @@
 # sp-codex-select Changelog
 
+## 0.2.2 - 2026-06-09
+
+- Force public API and endpoint compatibility tasks to the `api` hard flag and `spc_deep`.
+- Add governance metadata to `SKILL.md` frontmatter for Pilot review.
+- Strengthen Pilot validation for frontmatter metadata, trigger eval balance, model-map hard flags, and ignored local artifacts.
+- Harden installer to copy only runtime skill files into target projects.
+- Exclude development-only source materials such as `docs/`, `tests/`, `evals/`, `governance/`, `.git`, and `third_party/` from target installs.
+- Reduce route false positives for JSON schema validation and Markdown plan filenames.
+- Add near-miss trigger evals for ordinary Codex explanations and non-dispatch requests.
+- Add validator checks for `agents/openai.yaml` UI metadata and model-map consistency.
+- Add split fallback semantics to `references/model-map.json`.
+- Fix clean error reporting for empty route JSONL analysis.
+- Restore Chinese table-structure data-risk routing.
+- Preserve route-header trigger behavior even when the request asks not to dispatch subagents.
+- Add `validate_skill.py --stage runtime` for installed runtime skill copies.
+
 ## 0.2.1 - 2026-06-05
 
 - Add non-destructive installer behavior with dry-run, force, and backup semantics.
