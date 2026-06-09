@@ -1,3 +1,5 @@
 # Optional Codex skill metadata for UIs that read agents/openai.yaml
 name: sp-codex-select
 display_name: sp-codex-select
+short_description: Cost-aware routing for Superpowers and Codex subagents.
+default_prompt: Route this Superpowers or Codex subagent task by cost, risk, reasoning effort, sandbox, review policy, and fallback.

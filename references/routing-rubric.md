@@ -20,7 +20,7 @@ Any hard flag routes implementation to `spc_deep`:
 - auth/security/permissions/secrets/payment/privacy;
 - schema/migration/destructive/data integrity/rollback;
 - concurrency/races/distributed consistency/idempotency;
-- public API/backward compatibility/SDK compatibility;
+- public API/endpoint/backward compatibility/SDK compatibility;
 - broad architecture/refactor/plugin extension point;
 - unclear root cause or a previous lower-tier failure.
 

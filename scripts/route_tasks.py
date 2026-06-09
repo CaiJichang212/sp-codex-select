@@ -27,6 +27,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "medium",
             "sandbox_mode": "read-only",
             "fallback": "spc_spark",
+            "implementation_fallback": "spc_spark",
+            "review_fallback": None,
+            "final_verification_policy": "not-required",
         },
         "quick": {
             "tier": "T1",
@@ -35,6 +38,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "low",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_spark",
+            "implementation_fallback": "spc_spark",
+            "review_fallback": None,
+            "final_verification_policy": "not-required",
         },
         "spark": {
             "tier": "T2",
@@ -43,6 +49,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "medium",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_standard",
+            "implementation_fallback": "spc_standard",
+            "review_fallback": None,
+            "final_verification_policy": "recommended-for-behavior-change",
         },
         "standard": {
             "tier": "T3",
@@ -51,6 +60,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_deep",
+            "implementation_fallback": "spc_deep",
+            "review_fallback": None,
+            "final_verification_policy": "recommended-for-branch-gate",
         },
         "deep": {
             "tier": "T4",
@@ -59,6 +71,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "workspace-write",
             "fallback": "spc_final_verifier",
+            "implementation_fallback": None,
+            "review_fallback": "spc_quality_reviewer",
+            "final_verification_policy": "recommended-for-hard-flags",
         },
         "spec_review": {
             "tier": "R1",
@@ -67,6 +82,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "read-only",
             "fallback": "spc_quality_reviewer",
+            "implementation_fallback": None,
+            "review_fallback": "spc_quality_reviewer",
+            "final_verification_policy": "not-required",
         },
         "quality_review": {
             "tier": "R2",
@@ -75,6 +93,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "high",
             "sandbox_mode": "read-only",
             "fallback": "spc_final_verifier",
+            "implementation_fallback": None,
+            "review_fallback": "spc_final_verifier",
+            "final_verification_policy": "recommended-for-hard-flags",
         },
         "final_verify": {
             "tier": "R3",
@@ -83,6 +104,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "reasoning_effort": "xhigh",
             "sandbox_mode": "read-only",
             "fallback": None,
+            "implementation_fallback": None,
+            "review_fallback": None,
+            "final_verification_policy": "required-final-gate",
         },
     },
     "thresholds": {"quick_max": 2, "spark_max": 6, "standard_max": 10},
@@ -92,6 +116,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "spec_review_on_behavior_change": True,
         "quality_review_on_hard_flags": True,
     },
+    "hard_flags": ["api", "security", "data", "architecture", "prior_failure", "role:architect", "role:final-verifier"],
 }
 
 # Phrases are matched with token/word boundaries for ASCII and substring matching for CJK.
@@ -107,6 +132,7 @@ KEYWORDS: Dict[str, List[str]] = {
     ],
     "ambiguity": [
         "unclear", "ambiguous", "unknown", "figure out", "infer", "investigate",
+        "inferred",
         "explore", "discover", "root cause", "debug", "flaky", "intermittent",
         "cannot reproduce", "performance regression", "不明确", "未知", "推断", "调研",
         "探索", "定位", "根因", "为什么", "偶发", "难以复现", "性能回退",
@@ -127,7 +153,7 @@ KEYWORDS: Dict[str, List[str]] = {
     ],
     "data": [
         "migration", "schema", "destructive", "delete", "data loss", "rollback",
-        "transaction", "backfill", "consistency", "idempotent", "replication",
+        "transaction", "backfill", "consistency", "idempotent", "idempotency", "replication",
         "distributed", "race condition", "race", "deadlock", "concurrency", "并发",
         "迁移", "表结构", "删除", "数据丢失", "回滚", "事务", "回填", "一致性",
         "幂等", "复制", "分布式", "竞态", "死锁",
@@ -184,6 +210,37 @@ PATH_RE = re.compile(
     re.I,
 )
 ASCII_RE = re.compile(r"^[\x00-\x7F]+$")
+API_HARD_FLAG_PHRASES = {
+    "public api",
+    "endpoint",
+    "graphql",
+    "rest",
+    "rpc",
+    "sdk",
+    "client compatibility",
+    "公共api",
+}
+
+
+def strip_paths(text: str) -> str:
+    return PATH_RE.sub(" ", text)
+
+
+def has_data_risk(hit: Dict[str, List[str]], text: str) -> bool:
+    data_hits = set(hit["data"])
+    if not data_hits:
+        return False
+    data_hits.discard("schema")
+    if "表结构" in data_hits:
+        return True
+    if data_hits:
+        return True
+    return bool(
+        re.search(
+            r"\b(?:database|db|sql|postgres|mysql|sqlite)\s+schema\b|\bschema\s+(?:migration|change|rollback)\b",
+            text,
+        )
+    )
 
 
 @dataclass
@@ -197,6 +254,9 @@ class Route:
     model: str
     reasoning_effort: str
     fallback_agent_type: Optional[str]
+    implementation_fallback_agent_type: Optional[str]
+    review_fallback_agent_type: Optional[str]
+    final_verification_policy: str
     sandbox_mode: str
     confidence: str
     hard_flags: List[str]
@@ -241,19 +301,24 @@ def normalize_role(role: str, text: str) -> str:
     role = ROLE_ALIASES.get(role, role)
     if role != "auto":
         return role
-    if any(x in text for x in ["final review", "final verifier", "final branch", "before release", "release review", "最终", "全量审查", "发布前"]):
+    paths = PATH_RE.findall(text)
+    classification_text = strip_paths(text)
+    if any(x in classification_text for x in ["final review", "final verifier", "final branch", "before release", "release review", "最终", "全量审查", "发布前"]):
         return "final-verifier"
-    if any(x in text for x in ["spec review", "spec compliance", "规格", "需求符合"]):
+    if any(x in classification_text for x in ["spec review", "spec compliance", "规格", "需求符合"]):
         return "spec-reviewer"
-    if any(x in text for x in ["code review", "quality review", "质量审查", "代码审查"]):
+    if any(x in classification_text for x in ["code review", "quality review", "质量审查", "代码审查"]):
         return "quality-reviewer"
-    if any(x in text for x in ["explore", "investigate", "map", "locate", "定位", "探索", "调查"]):
+    if any(x in classification_text for x in ["explore", "investigate", "map", "locate", "定位", "探索", "调查"]):
         return "explorer"
-    if any(x in text for x in ["plan", "architecture", "方案", "架构"]):
-        return "planner"
-    if any(x in text for x in ["docs", "documentation", "readme", "文档"]):
+    markdown_paths = [path for path in paths if path.endswith(".md")]
+    if any(x in classification_text for x in ["docs", "documentation", "readme", "文档"]) or (
+        markdown_paths and any(x in classification_text for x in ["typo", "spelling", "readme", "docs", "documentation", "错别字", "文档"])
+    ):
         return "doc-writer"
-    if any(x in text for x in ["test", "测试"]):
+    if any(x in classification_text for x in ["plan", "architecture", "方案", "架构"]):
+        return "planner"
+    if any(x in classification_text for x in ["test", "测试"]):
         return "test-writer"
     return "implementer"
 
@@ -288,11 +353,15 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
     file_count, paths, file_unknown = estimate_files(t, explicit_files)
     loc = loc_hint(t)
     hit = {key: hits(t, key) for key in KEYWORDS}
+    data_risk = has_data_risk(hit, t)
 
     hard_flags: List[str] = []
+    api_hard_hits = sorted(set(hit["api"]) & API_HARD_FLAG_PHRASES)
+    if api_hard_hits:
+        hard_flags.append("api")
     if hit["security"]:
         hard_flags.append("security")
-    if hit["data"]:
+    if data_risk:
         hard_flags.append("data")
     if hit["architecture"]:
         hard_flags.append("architecture")
@@ -335,7 +404,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
     integration = 0
     if hit["integration"] or hit["api"]:
         integration += 1
-    if hit["data"]:
+    if data_risk:
         integration += 2
     integration = max(0, min(3, integration))
 
@@ -346,7 +415,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
         risk += 1
     if hit["security"]:
         risk += 2
-    if hit["data"]:
+    if data_risk:
         risk += 2
     if hit["prior_failure"]:
         risk += 2
@@ -381,6 +450,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
         "paths_detected": paths[:20],
         "loc_hint": loc,
         "keyword_hits": {k: v for k, v in hit.items() if v},
+        "api_hard_hits": api_hard_hits,
         "dimensions": {
             "file_scope": file_scope,
             "diff_size": diff_size,
@@ -454,6 +524,9 @@ def build_header(tier: str, category: str, model_cfg: Dict[str, Any], score: int
         f"model_reasoning_effort: {model_cfg['reasoning_effort']}",
         f"sandbox_mode: {model_cfg.get('sandbox_mode', 'workspace-write')}",
         f"fallback_agent_type: {model_cfg.get('fallback') or 'none'}",
+        f"implementation_fallback_agent_type: {model_cfg.get('implementation_fallback') or 'none'}",
+        f"review_fallback_agent_type: {model_cfg.get('review_fallback') or 'none'}",
+        f"final_verification_policy: {model_cfg.get('final_verification_policy', 'not-required')}",
         f"complexity_score: {score}",
         f"confidence: {confidence}",
         f"hard_flags: {', '.join(hard_flags) if hard_flags else 'none'}",
@@ -472,6 +545,10 @@ def route_task(text: str, role_arg: str, explicit_files: Optional[int], cfg: Dic
     confidence = confidence_for(score, category, hard_flags, signals)
     tid = task_id or "task-" + hashlib.sha1(text.encode("utf-8")).hexdigest()[:12]
     header = build_header(tier, category, model_cfg, score, hard_flags, confidence, rationale)
+    implementation_fallback = model_cfg.get("implementation_fallback")
+    review_fallback = model_cfg.get("review_fallback")
+    final_verification_policy = model_cfg.get("final_verification_policy", "not-required")
+    legacy_fallback = model_cfg.get("fallback")
     escalation = [
         "Escalate on BLOCKED caused by reasoning/design/debugging uncertainty.",
         "Escalate on correctness-related DONE_WITH_CONCERNS or failed review.",
@@ -486,7 +563,10 @@ def route_task(text: str, role_arg: str, explicit_files: Optional[int], cfg: Dic
         agent_type=model_cfg["agent_type"],
         model=model_cfg["model"],
         reasoning_effort=model_cfg["reasoning_effort"],
-        fallback_agent_type=model_cfg.get("fallback"),
+        fallback_agent_type=legacy_fallback,
+        implementation_fallback_agent_type=implementation_fallback,
+        review_fallback_agent_type=review_fallback,
+        final_verification_policy=final_verification_policy,
         sandbox_mode=model_cfg.get("sandbox_mode", "workspace-write"),
         confidence=confidence,
         hard_flags=hard_flags,
