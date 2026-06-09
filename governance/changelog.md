@@ -2,9 +2,10 @@
 
 ## 0.2.2 - 2026-06-09
 
+- Stop failing Pilot validation on local `.gitignore`-ignored artifacts such as `.DS_Store`, `__pycache__`, and `*.pyc`.
 - Force public API and endpoint compatibility tasks to the `api` hard flag and `spc_deep`.
 - Add governance metadata to `SKILL.md` frontmatter for Pilot review.
-- Strengthen Pilot validation for frontmatter metadata, trigger eval balance, model-map hard flags, and ignored local artifacts.
+- Strengthen Pilot validation for frontmatter metadata, trigger eval balance, and model-map hard flags.
 - Harden installer to copy only runtime skill files into target projects.
 - Exclude development-only source materials such as `docs/`, `tests/`, `evals/`, `governance/`, `.git`, and `third_party/` from target installs.
 - Reduce route false positives for JSON schema validation and Markdown plan filenames.

@@ -201,7 +201,7 @@ python3 scripts/validate_skill.py --stage pilot .
 - `smoke`：基础必需文件检查
 - `runtime`：安装后运行时副本检查，包括 `agents/openai.yaml` 和 model-map 一致性
 - `draft`：源码仓库 draft 就绪检查
-- `pilot`：完整源码仓库门禁，包括 eval、governance、安装器安全性和本地脏产物检查
+- `pilot`：完整源码仓库门禁，包括 eval、governance 和安装器安全性检查
 
 运行 eval：
 

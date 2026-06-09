@@ -104,7 +104,7 @@ class ValidateSkillTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("SKILL.md frontmatter missing metadata.org.owner", result.stderr)
 
-    def test_ignored_artifacts_fail_pilot(self) -> None:
+    def test_gitignored_artifacts_do_not_fail_pilot(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             copy = Path(temp) / "skill"
             copy_clean_tree(copy)
@@ -113,9 +113,8 @@ class ValidateSkillTest(unittest.TestCase):
             pycache.mkdir()
             (pycache / "route_tasks.cpython-312.pyc").write_bytes(b"local artifact")
             result = self.run_validator("--stage", "pilot", str(copy))
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("ignored artifact present: .DS_Store", result.stderr)
-            self.assertIn("ignored artifact present: scripts/__pycache__", result.stderr)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("OK: pilot", result.stdout)
 
 
 if __name__ == "__main__":

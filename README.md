@@ -201,7 +201,7 @@ Stage guidance:
 - `smoke`: basic required-file checks
 - `runtime`: installed runtime copy checks, including `agents/openai.yaml` and model-map consistency
 - `draft`: source-repo draft readiness
-- `pilot`: full source-repo gate including evals, governance, installer safety, and ignored-artifact checks
+- `pilot`: full source-repo gate including evals, governance, and installer safety checks
 
 Run eval suites:
 

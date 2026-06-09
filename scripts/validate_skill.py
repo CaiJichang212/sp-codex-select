@@ -41,9 +41,6 @@ REQUIRED_SKILL_METADATA = [
 
 VALID_STATUSES = {"draft", "pilot", "production", "deprecated"}
 VALID_RISK_LEVELS = {"R0", "R1", "R2", "R3", "R4"}
-IGNORED_ARTIFACT_NAMES = {".DS_Store", "__pycache__"}
-IGNORED_ARTIFACT_SUFFIXES = {".pyc"}
-
 PILOT_REQUIRED = [
     "evals/eval_queries.json",
     "evals/evals.json",
@@ -291,14 +288,6 @@ def check_installer_safety(root: Path, errors: List[str]) -> None:
         errors.append("installer missing backup behavior for forced replacement")
 
 
-def check_ignored_artifacts(root: Path, errors: List[str]) -> None:
-    for path in sorted(root.rglob("*")):
-        if ".git" in path.relative_to(root).parts:
-            continue
-        if path.name in IGNORED_ARTIFACT_NAMES or path.suffix in IGNORED_ARTIFACT_SUFFIXES:
-            errors.append(f"ignored artifact present: {path.relative_to(root)}")
-
-
 def validate(root: Path, stage: str) -> List[str]:
     errors: List[str] = []
     check_required(root, BASE_REQUIRED, errors)
@@ -312,7 +301,6 @@ def validate(root: Path, stage: str) -> List[str]:
         check_eval_suite(root, "evals/eval_queries.json", "queries", 30, errors)
         check_eval_suite(root, "evals/evals.json", "routes", 20, errors)
         check_installer_safety(root, errors)
-        check_ignored_artifacts(root, errors)
     return errors
 
 
