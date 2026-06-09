@@ -116,6 +116,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "spec_review_on_behavior_change": True,
         "quality_review_on_hard_flags": True,
     },
+    "hard_flags": ["api", "security", "data", "architecture", "prior_failure", "role:architect", "role:final-verifier"],
 }
 
 # Phrases are matched with token/word boundaries for ASCII and substring matching for CJK.
@@ -209,6 +210,37 @@ PATH_RE = re.compile(
     re.I,
 )
 ASCII_RE = re.compile(r"^[\x00-\x7F]+$")
+API_HARD_FLAG_PHRASES = {
+    "public api",
+    "endpoint",
+    "graphql",
+    "rest",
+    "rpc",
+    "sdk",
+    "client compatibility",
+    "公共api",
+}
+
+
+def strip_paths(text: str) -> str:
+    return PATH_RE.sub(" ", text)
+
+
+def has_data_risk(hit: Dict[str, List[str]], text: str) -> bool:
+    data_hits = set(hit["data"])
+    if not data_hits:
+        return False
+    data_hits.discard("schema")
+    if "表结构" in data_hits:
+        return True
+    if data_hits:
+        return True
+    return bool(
+        re.search(
+            r"\b(?:database|db|sql|postgres|mysql|sqlite)\s+schema\b|\bschema\s+(?:migration|change|rollback)\b",
+            text,
+        )
+    )
 
 
 @dataclass
@@ -269,19 +301,24 @@ def normalize_role(role: str, text: str) -> str:
     role = ROLE_ALIASES.get(role, role)
     if role != "auto":
         return role
-    if any(x in text for x in ["final review", "final verifier", "final branch", "before release", "release review", "最终", "全量审查", "发布前"]):
+    paths = PATH_RE.findall(text)
+    classification_text = strip_paths(text)
+    if any(x in classification_text for x in ["final review", "final verifier", "final branch", "before release", "release review", "最终", "全量审查", "发布前"]):
         return "final-verifier"
-    if any(x in text for x in ["spec review", "spec compliance", "规格", "需求符合"]):
+    if any(x in classification_text for x in ["spec review", "spec compliance", "规格", "需求符合"]):
         return "spec-reviewer"
-    if any(x in text for x in ["code review", "quality review", "质量审查", "代码审查"]):
+    if any(x in classification_text for x in ["code review", "quality review", "质量审查", "代码审查"]):
         return "quality-reviewer"
-    if any(x in text for x in ["explore", "investigate", "map", "locate", "定位", "探索", "调查"]):
+    if any(x in classification_text for x in ["explore", "investigate", "map", "locate", "定位", "探索", "调查"]):
         return "explorer"
-    if any(x in text for x in ["plan", "architecture", "方案", "架构"]):
-        return "planner"
-    if any(x in text for x in ["docs", "documentation", "readme", "文档"]):
+    markdown_paths = [path for path in paths if path.endswith(".md")]
+    if any(x in classification_text for x in ["docs", "documentation", "readme", "文档"]) or (
+        markdown_paths and any(x in classification_text for x in ["typo", "spelling", "readme", "docs", "documentation", "错别字", "文档"])
+    ):
         return "doc-writer"
-    if any(x in text for x in ["test", "测试"]):
+    if any(x in classification_text for x in ["plan", "architecture", "方案", "架构"]):
+        return "planner"
+    if any(x in classification_text for x in ["test", "测试"]):
         return "test-writer"
     return "implementer"
 
@@ -316,11 +353,15 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
     file_count, paths, file_unknown = estimate_files(t, explicit_files)
     loc = loc_hint(t)
     hit = {key: hits(t, key) for key in KEYWORDS}
+    data_risk = has_data_risk(hit, t)
 
     hard_flags: List[str] = []
+    api_hard_hits = sorted(set(hit["api"]) & API_HARD_FLAG_PHRASES)
+    if api_hard_hits:
+        hard_flags.append("api")
     if hit["security"]:
         hard_flags.append("security")
-    if hit["data"]:
+    if data_risk:
         hard_flags.append("data")
     if hit["architecture"]:
         hard_flags.append("architecture")
@@ -363,7 +404,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
     integration = 0
     if hit["integration"] or hit["api"]:
         integration += 1
-    if hit["data"]:
+    if data_risk:
         integration += 2
     integration = max(0, min(3, integration))
 
@@ -374,7 +415,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
         risk += 1
     if hit["security"]:
         risk += 2
-    if hit["data"]:
+    if data_risk:
         risk += 2
     if hit["prior_failure"]:
         risk += 2
@@ -409,6 +450,7 @@ def score_task(text: str, role: str, explicit_files: Optional[int]) -> Tuple[int
         "paths_detected": paths[:20],
         "loc_hint": loc,
         "keyword_hits": {k: v for k, v in hit.items() if v},
+        "api_hard_hits": api_hard_hits,
         "dimensions": {
             "file_scope": file_scope,
             "diff_size": diff_size,

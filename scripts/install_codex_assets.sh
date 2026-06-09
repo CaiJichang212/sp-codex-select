@@ -74,6 +74,18 @@ run() {
   fi
 }
 
+copy_skill_runtime() {
+  local target="$1"
+  run mkdir -p "$target"
+  run cp "$SKILL_DIR/SKILL.md" "$target/"
+  run cp "$SKILL_DIR/README.md" "$target/"
+
+  for dir in scripts assets references agents; do
+    run mkdir -p "$target/$dir"
+    run cp -R "$SKILL_DIR/$dir/." "$target/$dir/"
+  done
+}
+
 if [[ -e "$TARGET_SKILL" && "$FORCE" -ne 1 ]]; then
   printf 'Install target already exists: %s\n' "$TARGET_SKILL" >&2
   printf 'Use --force to replace it after a backup, or --dry-run to inspect actions.\n' >&2
@@ -88,7 +100,7 @@ if [[ -e "$TARGET_SKILL" && "$FORCE" -eq 1 ]]; then
   printf 'Backed up existing skill to %s\n' "$BACKUP"
 fi
 
-run cp -R "$SKILL_DIR" "$TARGET_SKILL"
+copy_skill_runtime "$TARGET_SKILL"
 run cp "$SKILL_DIR"/assets/codex-agents/*.toml "$TARGET_AGENTS_DIR/"
 
 printf 'Installed sp-codex-select skill to %s\n' "$TARGET_SKILL"

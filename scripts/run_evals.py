@@ -42,6 +42,38 @@ TRIGGER_TERMS = [
     "审查策略",
 ]
 
+NEGATIVE_TRIGGER_TERMS = [
+    "without dispatching subagents",
+    "without subagent dispatch",
+    "without spawning subagents",
+    "do not dispatch subagents",
+    "no subagent dispatch",
+    "normal code explanation",
+    "ordinary explanation",
+    "general explanation",
+    "不需要子代理",
+    "不需要派发",
+    "无需子代理",
+    "无需派发",
+    "普通解释",
+    "一般解释",
+]
+
+CORE_ROUTE_TERMS = [
+    "route header",
+    "route headers",
+    "model tier",
+    "reasoning effort",
+    "sandbox",
+    "fallback policy",
+    "review policy",
+    "spc_",
+    "路由头",
+    "模型层级",
+    "回退策略",
+    "审查策略",
+]
+
 
 def load_suite(path: Path) -> Dict[str, Any]:
     try:
@@ -66,6 +98,9 @@ def require(case: Dict[str, Any], key: str) -> Any:
 
 def should_use_skill(text: str) -> bool:
     lowered = text.lower()
+    has_core_route_signal = any(term in lowered for term in CORE_ROUTE_TERMS)
+    if any(term in lowered for term in NEGATIVE_TRIGGER_TERMS) and not has_core_route_signal:
+        return False
     return any(term in lowered for term in TRIGGER_TERMS)
 
 
